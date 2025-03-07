@@ -9,6 +9,10 @@ export const NETWORK_LIST = sfMeta.networks
 		const wagmiChain = Object.values(wagmiChains).find(
 			(item) => item.id === n.chainId,
 		);
+		if (!wagmiChain) {
+			console.error(`No wagmi chain found for ${n.name}`);
+			return null;
+		}
 		return {
 			...n,
 			...wagmiChain,
@@ -20,7 +24,7 @@ export const NETWORK_LIST = sfMeta.networks
 			subgraphUrl: `https://${n.name}.subgraph.x.superfluid.dev`,
 		};
 	})
-	.filter((n) => n.contractsV1.toga !== undefined);
+	.filter((n) => n !== null && n.contractsV1.toga !== undefined);
 
 export const tryFindNetwork = (networks, value) => {
 	const asNumber = Number(value);
