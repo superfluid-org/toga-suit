@@ -47,7 +47,7 @@ function LiquidatedStreams() {
 		GET_LIQUIDATION_EVENTS,
 		{
 			variables: {
-				first: 20,
+				first: 100,
 				skip: 0,
 			},
 			notifyOnNetworkStatusChange: true,

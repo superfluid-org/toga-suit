@@ -2,7 +2,7 @@ import gql from 'graphql-tag';
 
 export const GET_SUPER_TOKENS = gql`
 	query GetSuperTokens {
-		tokens(where: { isSuperToken: true }, first: 1000) {
+		tokens(where: { isSuperToken: true, isListed: true }, first: 1000) {
 			id
 			symbol
 			decimals

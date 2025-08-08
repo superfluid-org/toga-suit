@@ -32,6 +32,7 @@ function Layout() {
 	const { selectedNetwork } = useContext(NetworkContext);
 	const { loading } = useQuery(GET_SUPER_TOKENS, {
 		onCompleted: (data) => {
+			console.log(`Loaded ${data.tokens.length} tokens`);
 			setTokenMap(generateTokenMap(data.tokens));
 		},
 		onError: () => setTokenMap(new Map()),
