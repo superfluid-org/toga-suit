@@ -53,7 +53,8 @@ function LiquidatedStreamTable({ data }) {
 				Header: 'Token',
 				accessor: 'token',
 				Cell: ({ value }) => {
-					const token = tokenMap.get(value);
+					const key = (value || '').toLowerCase();
+					const token = tokenMap.get(key);
 					if (!token || !token.readable) {
 						return value;
 					}
@@ -86,7 +87,9 @@ function LiquidatedStreamTable({ data }) {
 						values: { token },
 					},
 				}) => {
-					return naturalUnitToReadable(value, tokenMap.get(token));
+					const key = (token || '').toLowerCase();
+					const t = tokenMap.get(key);
+					return t ? naturalUnitToReadable(value, t) : String(value);
 				},
 			},
 			//{

@@ -43,11 +43,13 @@ export const fetchTokenUsdValue = memoizee(fetchTokenUsd, {
 export function generateTokenMap(tokens) {
 	const tokenMap = new Map();
 	tokens.forEach((token) => {
-		tokenMap.set(token.id, {
+		// Normalize key to lowercase to avoid checksum-case mismatches in lookups
+		const key = (token.id || '').toLowerCase();
+		tokenMap.set(key, {
 			id: token.id,
 			readable: getTokenString(token),
 			symbol: token.symbol,
-			decimals: token.decimals,
+			decimals: typeof token.decimals === 'number' ? token.decimals : Number(token.decimals),
 			isListed: token.isListed,
 		});
 	});
@@ -59,14 +61,25 @@ export function naturalUnitToDailyReadable(naturalUnits, token) {
 }
 
 export function naturalUnitToReadable(naturalUnits, token) {
+	if (!token || typeof token.decimals !== 'number' || Number.isNaN(token.decimals)) {
+		// Fallback: return the raw value when token metadata is unavailable
+		return String(naturalUnits);
+	}
 	return fromNaturalUnit(naturalUnits, token) + ' ' + token.symbol;
 }
 
 export function fromNaturalUnit(naturalUnits, token) {
+	if (!token || typeof token.decimals !== 'number' || Number.isNaN(token.decimals)) {
+		return Number(naturalUnits);
+	}
 	return parseFloat((naturalUnits / 10 ** token.decimals).toFixed(7));
 }
 
 export function toNaturalUnit(naturalUnits, token) {
+	if (!token || typeof token.decimals !== 'number' || Number.isNaN(token.decimals)) {
+		// eslint-disable-next-line no-undef
+		return BigInt(Math.round(Number(naturalUnits)));
+	}
 	// eslint-disable-next-line no-undef
 	return BigInt(Math.round(naturalUnits * 10 ** token.decimals));
 }
