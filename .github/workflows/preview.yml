@@ -1,0 +1,53 @@
+name: Preview
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
+    paths:
+      - "toga-dashboard/**"
+      - ".github/workflows/preview.yml"
+
+concurrency:
+  group: preview-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 18.x
+        if: github.event.action != 'closed'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install and build
+        if: github.event.action != 'closed'
+        working-directory: ./toga-dashboard
+        env:
+          CI: false
+          PUBLIC_URL: /toga-suit/pr-preview/pr-${{ github.event.number }}
+          REACT_APP_WALLET_CONNECT_PROJECT_ID: ${{ secrets.WALLET_CONNECT_PROJECT_ID }}
+        run: |
+          corepack enable
+          corepack prepare yarn@1.22.22 --activate
+          yarn install --frozen-lockfile --production=false
+          yarn build
+
+      - name: Deploy preview
+        uses: rossjrw/pr-preview-action@v1.8.2
+        with:
+          source-dir: ./toga-dashboard/build/
+          preview-branch: gh-pages
+          wait-for-pages-deployment: true
