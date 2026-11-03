@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/toga-suit/pr-preview/pr-23/static/css/main.f0f53174.css",
-    "main.js": "/toga-suit/pr-preview/pr-23/static/js/main.06fe48fe.js",
+    "main.js": "/toga-suit/pr-preview/pr-23/static/js/main.0bf36104.js",
     "static/js/155.a64e1fa8.chunk.js": "/toga-suit/pr-preview/pr-23/static/js/155.a64e1fa8.chunk.js",
     "static/js/5036.b11d33e4.chunk.js": "/toga-suit/pr-preview/pr-23/static/js/5036.b11d33e4.chunk.js",
     "static/js/2002.5d8bc16a.chunk.js": "/toga-suit/pr-preview/pr-23/static/js/2002.5d8bc16a.chunk.js",
@@ -75,7 +75,7 @@
     "index.html": "/toga-suit/pr-preview/pr-23/index.html",
     "static/media/copyContent.svg": "/toga-suit/pr-preview/pr-23/static/media/copyContent.4e3f0d0e1e1f16ab480cd6cf11021971.svg",
     "main.f0f53174.css.map": "/toga-suit/pr-preview/pr-23/static/css/main.f0f53174.css.map",
-    "main.06fe48fe.js.map": "/toga-suit/pr-preview/pr-23/static/js/main.06fe48fe.js.map",
+    "main.0bf36104.js.map": "/toga-suit/pr-preview/pr-23/static/js/main.0bf36104.js.map",
     "155.a64e1fa8.chunk.js.map": "/toga-suit/pr-preview/pr-23/static/js/155.a64e1fa8.chunk.js.map",
     "5036.b11d33e4.chunk.js.map": "/toga-suit/pr-preview/pr-23/static/js/5036.b11d33e4.chunk.js.map",
     "2002.5d8bc16a.chunk.js.map": "/toga-suit/pr-preview/pr-23/static/js/2002.5d8bc16a.chunk.js.map",
@@ -144,6 +144,6 @@
   },
   "entrypoints": [
     "static/css/main.f0f53174.css",
-    "static/js/main.06fe48fe.js"
+    "static/js/main.0bf36104.js"
   ]
 }
