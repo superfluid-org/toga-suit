@@ -4,32 +4,10 @@ const PROVIDER_URL_TEMPLATE = `https://rpc-endpoints.superfluid.dev/{{network}}`
 
 export const UNSUPPORTED = { name: 'Unsupported network' };
 
-// wagmi 1.4 does not ship Arc. Native gas on Arc is USDC with 18 decimals.
-const ARC_MAINNET_CHAIN = {
-	id: 5042,
-	network: 'arc',
-	name: 'Arc',
-	nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
-	rpcUrls: {
-		default: { http: ['https://rpc.mainnet.arc.io'] },
-		public: { http: ['https://rpc.mainnet.arc.io'] },
-	},
-	blockExplorers: {
-		default: { name: 'Arc', url: 'https://explorer.arc.io' },
-	},
-};
-
 function wagmiChainFor(metadataNetwork) {
-	const known = Object.values(wagmiChains).find(
-		(item) => item.id === metadataNetwork.chainId,
+	return Object.values(wagmiChains).find(
+		(item) => item && item.id === metadataNetwork.chainId,
 	);
-	if (known) {
-		return known;
-	}
-	if (metadataNetwork.chainId === ARC_MAINNET_CHAIN.id) {
-		return ARC_MAINNET_CHAIN;
-	}
-	return undefined;
 }
 
 export const NETWORK_LIST = sfMeta.networks
