@@ -7,13 +7,15 @@ import {
 	WAITING,
 } from '../../constants/txStatus';
 import {
-	encodeToNaturalUnitsFromDaily,
-} from '../../helper/tokenUtils';
+	exitRatePerSecondFromHumanDaily,
+	inputErrorText,
+} from '../../toga';
 import Button from '../Button';
 import BigInfo from '../common/BigInfo';
 import { SelectedTokenContext } from '../context';
 import LabelledInput from '../LabelledInput';
 import PageLoader from '../Loader';
+import { BigNumber } from 'ethers';
 
 const ExitRateModalContainer = styled.div`
 	display: ${(props) => (props.enabled ? 'flex' : 'none')};
@@ -33,6 +35,11 @@ const ExitRateModalContainer = styled.div`
 	}
 `;
 
+const HelperText = styled.p`
+	margin: 0;
+	line-height: 1.4;
+`;
+
 const ControlsContainer = styled.div`
 	display: flex;
 	column-gap: 5px;
@@ -45,29 +52,37 @@ function ExitRateModal({ enabled, closeModal, togaContract, disableButton }) {
 
 	const [exitRate, setExitRate] = useState(0);
 	const [txStatus, setTxStatus] = useState(NO_TRANSACTION);
+	const [inputError, setInputError] = useState('');
 
 	useEffect(() => {
 		if (enabled) {
-			// Workaround to stop the loading bubbles when user enables/disables modal
 			setTxStatus(NO_TRANSACTION);
+			setInputError('');
 		}
 	}, [enabled]);
 
 	async function changeExitRate() {
+		let exitRatePerSecond;
+		try {
+			exitRatePerSecond = exitRatePerSecondFromHumanDaily(
+				exitRate,
+				selectedToken.decimals,
+			);
+		} catch (error) {
+			setInputError(inputErrorText(error, 'Exit rate change failed'));
+			return;
+		}
 		try {
 			setTxStatus(WAITING);
 			disableButton(true);
 			const tx = await togaContract.changeExitRate(
 				selectedToken.id,
-				encodeToNaturalUnitsFromDaily(
-					parseFloat(exitRate),
-					selectedToken,
-				),
+				BigNumber.from(exitRatePerSecond.toString()),
 			);
 			const receipt = await tx.wait();
 			setTxStatus(receipt.status ? SUCCESSFUL : FAILED);
-		} catch (e) {
-			console.log('Unable to change exit rate', e);
+		} catch (error) {
+			console.error('Unable to change exit rate', error);
 			setTxStatus(FAILED);
 		}
 		disableButton(false);
@@ -87,8 +102,12 @@ function ExitRateModal({ enabled, closeModal, togaContract, disableButton }) {
 				<LabelledInput
 					label={`New Exit Rate (${selectedToken.symbol}/day)`}
 					value={exitRate}
-					onChange={(e) => setExitRate(e.target.value)}
+					onChange={(e) => {
+						setInputError('');
+						setExitRate(e.target.value);
+					}}
 				/>
+				{inputError ? <HelperText>{inputError}</HelperText> : null}
 				<ControlsContainer>
 					<Button text={'Confirm'} onClick={changeExitRate} />
 					<Button

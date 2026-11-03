@@ -3,6 +3,7 @@ import { HeaderContainer, SectionContainer } from '../commonElements';
 import Header from '../Controls';
 import TokenInfo from '../../components/TokenInfo';
 import PICInfo from '../../components/PICInfo';
+import LegacyPICPanel from '../../components/LegacyPICPanel';
 import {
 	SelectedTokenContext,
 	SuperTokensContext,
@@ -36,6 +37,7 @@ function TokenInfoSection() {
 					</SectionContainer>
 					<SectionContainer>
 						<PICInfo />
+						<LegacyPICPanel />
 					</SectionContainer>
 				</React.Fragment>
 			) : (

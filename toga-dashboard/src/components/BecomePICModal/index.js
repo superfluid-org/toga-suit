@@ -1,15 +1,12 @@
+/* global BigInt */
 import React, { useContext, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import Button from '../Button';
 import { SelectedTokenContext } from '../context';
 import LabelledInput from '../LabelledInput';
 import PageLoader from '../Loader';
-import { utils, Contract } from 'ethers';
-import SuperTokenAbi from '../../contract-abi/SuperToken.json';
-import {
-	encodeToNaturalUnits,
-	encodeToNaturalUnitsFromDaily,
-} from '../../helper/tokenUtils';
+import { utils } from 'ethers';
+import { buildBidTransactions, inputErrorText, parseStakeAndExitRate } from '../../toga';
 import {
 	FAILED,
 	NO_TRANSACTION,
@@ -37,6 +34,11 @@ const BecomePICModalContainer = styled.div`
 	}
 `;
 
+const HelperText = styled.p`
+	margin: 0;
+	line-height: 1.4;
+`;
+
 const ControlsContainer = styled.div`
 	display: flex;
 	column-gap: 5px;
@@ -44,60 +46,109 @@ const ControlsContainer = styled.div`
 	width: 100%;
 `;
 
-function BecomePICModal({ enabled, closeModal, togaContract, disableButton }) {
+function BecomePICModal({
+	enabled,
+	closeModal,
+	togaContract,
+	bidMethod,
+	disableButton,
+}) {
 	const selectedToken = useContext(SelectedTokenContext);
 
-	const [tokenContract, setTokenContract] = useState(null);
 	const [exitRate, setExitRate] = useState(0);
 	const [bond, setBond] = useState(0);
 	const [txStatus, setTxStatus] = useState(NO_TRANSACTION);
+	const [failureText, setFailureText] = useState('PIC bid failed');
+	const [inputError, setInputError] = useState('');
 	const signer = useEthersSigner();
 
 	useEffect(() => {
 		if (enabled) {
-			// Workaround to stop the loading bubbles when user enables/disables modal
 			setTxStatus(NO_TRANSACTION);
+			setFailureText('PIC bid failed');
+			setInputError('');
 		}
 	}, [enabled]);
 
-	useEffect(() => {
-		const tokenContractInterface = new utils.Interface(SuperTokenAbi);
-		const contract = new Contract(
-			selectedToken.id,
-			tokenContractInterface,
-			signer,
-		);
-		setTokenContract(contract);
-	}, [signer, selectedToken]);
-
 	async function sendPICBid() {
+		const closeAfterDelay = () => {
+			disableButton(false);
+			setTimeout(() => {
+				setTxStatus(NO_TRANSACTION);
+				closeModal();
+			}, 3000);
+		};
+		if (!bidMethod || !signer || !togaContract) {
+			setFailureText(
+				bidMethod
+					? 'PIC bid failed'
+					: 'This TOGA contract could not be read, so a bid cannot be built.',
+			);
+			setTxStatus(FAILED);
+			closeAfterDelay();
+			return;
+		}
 		try {
+			const { amount, exitRatePerSecond } = parseStakeAndExitRate(
+				bond,
+				exitRate,
+				selectedToken.decimals,
+			);
 			setTxStatus(WAITING);
 			disableButton(true);
-			const tx = await tokenContract.send(
-				togaContract.address,
-				encodeToNaturalUnits(parseFloat(bond), selectedToken),
-				encodeToNaturalUnitsFromDaily(
-					parseFloat(exitRate),
-					selectedToken,
-				),
-			);
-			const receipt = await tx.wait();
-			setTxStatus(receipt.status ? SUCCESSFUL : FAILED);
-		} catch (e) {
-			console.log('Unabled to become PIC', e);
+			let allowance = 0n;
+			if (bidMethod === 'approve-and-bond') {
+				const erc20 = new utils.Interface([
+					'function allowance(address owner, address spender) view returns (uint256)',
+				]);
+				const data = erc20.encodeFunctionData('allowance', [
+					await signer.getAddress(),
+					togaContract.address,
+				]);
+				const raw = await signer.provider.call({
+					to: selectedToken.id,
+					data,
+				});
+				allowance = BigInt(
+					erc20.decodeFunctionResult('allowance', raw)[0].toString(),
+				);
+			}
+			const txs = buildBidTransactions({
+				method: bidMethod,
+				toga: togaContract.address,
+				token: selectedToken.id,
+				amount,
+				exitRatePerSecond,
+				allowance,
+			});
+			for (const step of txs) {
+				const tx = await signer.sendTransaction(step);
+				const receipt = await tx.wait();
+				if (!receipt.status) {
+					setFailureText('PIC bid failed');
+					setTxStatus(FAILED);
+					closeAfterDelay();
+					return;
+				}
+			}
+			setTxStatus(SUCCESSFUL);
+		} catch (error) {
+			const message = inputErrorText(error, null);
+			if (message) {
+				setInputError(message);
+				setTxStatus(NO_TRANSACTION);
+				disableButton(false);
+				return;
+			}
+			console.error('Unable to become PIC', error);
+			setFailureText('PIC bid failed');
 			setTxStatus(FAILED);
 		}
-		disableButton(false);
-
-		setTimeout(() => {
-			setTxStatus(NO_TRANSACTION);
-			closeModal();
-		}, 3000);
+		closeAfterDelay();
 	}
 
 	let content;
-	if (txStatus === WAITING || !tokenContract) {
+	if (txStatus === WAITING) {
 		content = <PageLoader />;
 	} else if (txStatus === NO_TRANSACTION) {
 		content = (
@@ -105,15 +156,32 @@ function BecomePICModal({ enabled, closeModal, togaContract, disableButton }) {
 				<LabelledInput
 					label={`Exit Rate (${selectedToken.symbol}/day)`}
 					value={exitRate}
-					onChange={(e) => setExitRate(e.target.value)}
+					onChange={(e) => {
+						setInputError('');
+						setExitRate(e.target.value);
+					}}
 				/>
 				<LabelledInput
 					label={`Stake (${selectedToken.symbol})`}
 					value={bond}
-					onChange={(e) => setBond(e.target.value)}
+					onChange={(e) => {
+						setInputError('');
+						setBond(e.target.value);
+					}}
 				/>
+				{inputError ? <HelperText>{inputError}</HelperText> : null}
+				{!bidMethod ? (
+					<HelperText>
+						This TOGA contract could not be read, so a bid cannot
+						be built.
+					</HelperText>
+				) : null}
 				<ControlsContainer>
-					<Button text={'Confirm'} onClick={sendPICBid} />
+					<Button
+						text={'Confirm'}
+						onClick={sendPICBid}
+						disabled={!bidMethod}
+					/>
 					<Button
 						onClick={closeModal}
 						negative={true}
@@ -125,7 +193,7 @@ function BecomePICModal({ enabled, closeModal, togaContract, disableButton }) {
 	} else if (txStatus === SUCCESSFUL) {
 		content = <BigInfo text={'You are now the PIC!'} />;
 	} else if (txStatus === FAILED) {
-		content = <BigInfo text={'PIC bid failed'} />;
+		content = <BigInfo text={failureText} />;
 	}
 
 	return (

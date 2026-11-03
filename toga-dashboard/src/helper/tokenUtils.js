@@ -1,3 +1,4 @@
+/* global BigInt */
 import { utils } from 'ethers';
 import memoizee from 'memoizee';
 
@@ -56,16 +57,74 @@ export function generateTokenMap(tokens) {
 	return tokenMap;
 }
 
-export function naturalUnitToDailyReadable(naturalUnits, token) {
-	return naturalUnitToReadable(naturalUnits * SECONDS_IN_A_DAY, token);
+function asBaseUnits(value) {
+	if (typeof value === 'bigint') {
+		return value;
+	}
+	if (value == null) {
+		return 0n;
+	}
+	if (typeof value === 'number') {
+		if (!Number.isSafeInteger(value)) {
+			return null;
+		}
+		return BigInt(value);
+	}
+	const text = String(value);
+	if (/^-?\d+$/.test(text)) {
+		return BigInt(text);
+	}
+	return null;
+}
+
+function roundBaseUnits(amount, decimals, maxFractionDigits) {
+	if (decimals <= maxFractionDigits) {
+		return amount;
+	}
+	const factor = 10n ** BigInt(decimals - maxFractionDigits);
+	const negative = amount < 0n;
+	const abs = negative ? -amount : amount;
+	const rounded = ((abs + factor / 2n) / factor) * factor;
+	return negative ? -rounded : rounded;
+}
+
+function formatBaseUnits(amount, decimals) {
+	// Eight fractional digits covers a bond or a daily exit rate without a long tail.
+	const rounded = roundBaseUnits(amount, decimals, 8);
+	const negative = rounded < 0n;
+	const abs = negative ? -rounded : rounded;
+	const scale = 10n ** BigInt(decimals);
+	const whole = abs / scale;
+	const fraction = (abs % scale)
+		.toString()
+		.padStart(decimals, '0')
+		.replace(/0+$/, '');
+	const text = fraction ? `${whole}.${fraction}` : `${whole}`;
+	return negative ? `-${text}` : text;
+}
+
+export function naturalUnitToDailyReadable(perSecond, token) {
+	const base = asBaseUnits(perSecond);
+	if (base === null) {
+		return naturalUnitToReadable(Number(perSecond) * SECONDS_IN_A_DAY, token);
+	}
+	return naturalUnitToReadable(base * BigInt(SECONDS_IN_A_DAY), token);
 }
 
 export function naturalUnitToReadable(naturalUnits, token) {
-	if (!token || typeof token.decimals !== 'number' || Number.isNaN(token.decimals)) {
-		// Fallback: return the raw value when token metadata is unavailable
+	if (
+		!token ||
+		!Number.isInteger(token.decimals) ||
+		token.decimals < 0
+	) {
 		return String(naturalUnits);
 	}
-	return fromNaturalUnit(naturalUnits, token) + ' ' + token.symbol;
+	const base = asBaseUnits(naturalUnits);
+	const formatted =
+		base === null
+			? fromNaturalUnit(naturalUnits, token)
+			: formatBaseUnits(base, token.decimals);
+	return formatted + ' ' + token.symbol;
 }
 
 export function fromNaturalUnit(naturalUnits, token) {
