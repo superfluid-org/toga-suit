@@ -1,6 +1,11 @@
 // Wagmi replaces metadata `name` ("xdai-mainnet" becomes "Gnosis") and sets `id`.
 // Metadata `chainId` survives that merge. `id` covers a chain object that only has `id`.
 
+// TOGA was redeployed on 2026-09-08 on these six networks. Metadata lists only
+// the new contract. A bond or a custodied balance stayed on the previous one,
+// so the recovery panel reads this map and lets that PIC stream the bond out
+// or withdraw custody, then stake on the current TOGA. Other networks were
+// not redeployed.
 export const LEGACY_TOGA_BY_CHAIN_ID = {
 	100: '0xb7DE52F4281a7a276E18C40F94cd93159C4A2d22',
 	137: '0x6AEAeE5Fd4D05A741723D752D30EE4D72690A8f7',
