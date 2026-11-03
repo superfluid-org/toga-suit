@@ -3,11 +3,19 @@ import sfMeta from '@superfluid-finance/metadata';
 import { constants, utils } from 'ethers';
 import { resolveActiveTogaAddress } from './resolveTogaAddress.js';
 import {
-	ACTIVE_TOGA_BY_CHAIN_ID,
 	LEGACY_TOGA_BY_CHAIN_ID,
 	resolveLegacyTogaAddress,
 	resolveOfflineActiveTogaAddress,
 } from './constants.js';
+
+const CURRENT_TOGA_BY_CHAIN_ID = {
+	100: '0x177Ab68dc7B0032Fce7d64d5BD28a5983bD42B3B',
+	137: '0xeF3cB64Ab9021E400f4331929d8d02A47b333Af1',
+	10: '0x91b577553B5390d47A1984eE500663EE7671DcE6',
+	42161: '0xD09302C533Ca020E02FF4F70BBa606e3C2b3F4a6',
+	43114: '0xD226e7C591F6aE719079b8A31654221d980DB5ce',
+	56: '0xAb6e2f343C1909258580e4E6A149E24CbB3D2AEd',
+};
 
 const LEGACY_NETWORKS = [
 	'xdai-mainnet',
@@ -33,14 +41,17 @@ function appNetwork(name, wagmiName) {
 
 describe('resolveOfflineActiveTogaAddress', () => {
 	it.each(LEGACY_NETWORKS)(
-		'%s uses the active TOGA while metadata still has the previous one',
+		'%s metadata lists the current TOGA, not the deprecated one',
 		(name) => {
 			const network = networkByName(name);
-			expect(resolveOfflineActiveTogaAddress(network)).toBe(
-				ACTIVE_TOGA_BY_CHAIN_ID[network.chainId],
+			expect(network.contractsV1.toga).toBe(
+				CURRENT_TOGA_BY_CHAIN_ID[network.chainId],
 			);
-			expect(network.contractsV1.toga.toLowerCase()).toBe(
+			expect(network.contractsV1.toga.toLowerCase()).not.toBe(
 				LEGACY_TOGA_BY_CHAIN_ID[network.chainId].toLowerCase(),
+			);
+			expect(resolveOfflineActiveTogaAddress(network)).toBe(
+				network.contractsV1.toga,
 			);
 		},
 	);
@@ -52,11 +63,11 @@ describe('resolveOfflineActiveTogaAddress', () => {
 		);
 	});
 
-	it('still resolves after wagmi overwrites the network name', () => {
+	it('still resolves the legacy contract after wagmi overwrites the network name', () => {
 		const network = appNetwork('xdai-mainnet', 'Gnosis');
 		expect(network.name).toBe('Gnosis');
 		expect(resolveOfflineActiveTogaAddress(network)).toBe(
-			ACTIVE_TOGA_BY_CHAIN_ID[100],
+			CURRENT_TOGA_BY_CHAIN_ID[100],
 		);
 		expect(resolveLegacyTogaAddress(network)).toBe(LEGACY_TOGA_BY_CHAIN_ID[100]);
 	});
@@ -78,27 +89,23 @@ describe('resolveActiveTogaAddress', () => {
 		expect(provider.call).toHaveBeenCalled();
 	});
 
-	it('ignores a zero reward address and uses the offline table', async () => {
+	it('ignores a zero reward address and uses metadata', async () => {
 		const provider = {
 			call: vi.fn().mockResolvedValue(
 				utils.defaultAbiCoder.encode(['address'], [constants.AddressZero]),
 			),
 		};
-		const address = await resolveActiveTogaAddress(
-			networkByName('xdai-mainnet'),
-			provider,
-		);
-		expect(address).toBe(ACTIVE_TOGA_BY_CHAIN_ID[100]);
+		const network = networkByName('xdai-mainnet');
+		const address = await resolveActiveTogaAddress(network, provider);
+		expect(address).toBe(network.contractsV1.toga);
 	});
 
-	it('falls back to the table when the call fails', async () => {
+	it('falls back to metadata when the call fails', async () => {
 		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 		const provider = { call: vi.fn().mockRejectedValue(new Error('rpc down')) };
-		const address = await resolveActiveTogaAddress(
-			appNetwork('polygon-mainnet', 'Polygon'),
-			provider,
-		);
-		expect(address).toBe(ACTIVE_TOGA_BY_CHAIN_ID[137]);
+		const network = appNetwork('polygon-mainnet', 'Polygon');
+		const address = await resolveActiveTogaAddress(network, provider);
+		expect(address).toBe(network.contractsV1.toga);
 		errorSpy.mockRestore();
 	});
 

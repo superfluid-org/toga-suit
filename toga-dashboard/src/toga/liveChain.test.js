@@ -4,10 +4,7 @@ import { fileURLToPath } from 'url';
 import { describe, expect, it } from 'vitest';
 import { ethers } from 'ethers';
 import sfMeta from '@superfluid-finance/metadata';
-import {
-	ACTIVE_TOGA_BY_CHAIN_ID,
-	LEGACY_TOGA_BY_CHAIN_ID,
-} from './constants.js';
+import { LEGACY_TOGA_BY_CHAIN_ID } from './constants.js';
 import {
 	bidMethodFromBytecode,
 	scanBytecodeCapabilities,
@@ -49,7 +46,7 @@ describe('live chain reads', () => {
 			meta.contractsV1.host,
 			ethers.constants.AddressZero,
 		);
-		expect(reward).toBe(ACTIVE_TOGA_BY_CHAIN_ID[100]);
+		expect(reward).toBe(ethers.utils.getAddress(meta.contractsV1.toga));
 		const code = await provider.getCode(reward);
 		expect(scanBytecodeCapabilities(code)).toEqual(
 			scanBytecodeCapabilities(gnosisFixture),
@@ -58,9 +55,9 @@ describe('live chain reads', () => {
 	});
 
 	it('Optimism deprecated TOGA can withdraw custody and the active one cannot', async () => {
-		const { provider } = await providerFor('optimism-mainnet');
+		const { provider, meta } = await providerFor('optimism-mainnet');
 		const legacy = await provider.getCode(LEGACY_TOGA_BY_CHAIN_ID[10]);
-		const active = await provider.getCode(ACTIVE_TOGA_BY_CHAIN_ID[10]);
+		const active = await provider.getCode(meta.contractsV1.toga);
 		expect(scanBytecodeCapabilities(legacy).hasWithdrawFundsInCustody).toBe(true);
 		expect(scanBytecodeCapabilities(active).hasWithdrawFundsInCustody).toBe(false);
 		expect(bidMethodFromBytecode(active)).toBe('erc777-send');

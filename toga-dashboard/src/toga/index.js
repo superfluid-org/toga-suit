@@ -1,5 +1,4 @@
 export {
-	ACTIVE_TOGA_BY_CHAIN_ID,
 	LEGACY_TOGA_BY_CHAIN_ID,
 	getNetworkChainId,
 	isLegacyTogaNetwork,
