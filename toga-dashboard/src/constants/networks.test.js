@@ -26,6 +26,8 @@ describe('NETWORK_LIST', () => {
 		expect(network.rpcUrls.default.http).toContain(
 			'https://rpc.mainnet.arc.io',
 		);
+		expect(network.iconBackground).toBe('#0d1b2f');
+		expect(network.iconUrl).toMatch(/\/icons\/network\/arc\.png$/);
 	});
 
 	it('accepts Arc in the wagmi config', () => {
