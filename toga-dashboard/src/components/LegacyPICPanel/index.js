@@ -8,7 +8,7 @@ import {
 	SignerContext,
 } from '../context';
 import Button from '../Button';
-import { InfoBoxesContainer } from '../InfoBox/commonElements';
+import { InfoBoxContainer, InfoBoxesContainer } from '../InfoBox/commonElements';
 import InfoBox from '../InfoBox';
 import {
 	naturalUnitToDailyReadable,
@@ -41,11 +41,22 @@ const CUSTODIAN_ABI = [
 	'function balances(address token, address recipient) view returns (uint256)',
 ];
 
+const LegacyBoxes = styled(InfoBoxesContainer)`
+	@media screen and (min-width: 768px) {
+		${InfoBoxContainer} {
+			flex: 0 0 calc((100% - 100px) / 3);
+			width: auto;
+		}
+	}
+`;
+
 const PanelContainer = styled.div`
 	display: flex;
 	flex-direction: column;
 	width: 100%;
-	margin-top: 40px;
+	margin-top: 48px;
+	padding-top: 40px;
+	border-top: 1px solid ${(props) => props.theme.colors.border};
 	row-gap: 20px;
 `;
 
@@ -61,8 +72,9 @@ const ActionsRow = styled.div`
 
 const HelperText = styled.p`
 	margin: 0;
+	max-width: 68ch;
 	opacity: 0.85;
-	line-height: 1.4;
+	line-height: 1.45;
 `;
 
 function bondDurationLabel(duration) {
@@ -248,14 +260,10 @@ function LegacyPICPanel() {
 			<PanelTitle>Previous TOGA (legacy bond)</PanelTitle>
 			{legacyState.isPic && legacyState.bond?.gt?.(0) ? (
 				<HelperText>
-					You are still PIC on the previous TOGA contract. Liquidation
-					rewards no longer accrue there. Your stake is{' '}
-					{naturalUnitToReadable(legacyState.bond, selectedToken)} at{' '}
-					{naturalUnitToDailyReadable(
-						legacyState.exitRate,
-						selectedToken,
-					)}{' '}
-					per day exit rate.
+					You are still PIC on the previous contract. Liquidation
+					rewards no longer accrue there. Stream this stake back to
+					your wallet, then use Become PIC above. Do not bid while
+					the stake is still locked here.
 				</HelperText>
 			) : null}
 			{legacyState.custody?.gt?.(0) ? (
@@ -267,18 +275,24 @@ function LegacyPICPanel() {
 					Become PIC.
 				</HelperText>
 			) : null}
-			<HelperText>
-				Once tokens are back in your wallet, use Become PIC on the
-				current TOGA above. Do not bid against a bond that is still
-				locked here.
-			</HelperText>
-			<InfoBoxesContainer>
+			<LegacyBoxes>
 				{legacyState.isPic && legacyState.bond?.gt?.(0) ? (
 					<InfoBox
-						title="Legacy stake"
-						secondaryInfo="Bond on the deprecated TOGA"
+						title="Stake"
+						secondaryInfo="Bond on the previous TOGA"
 						data={naturalUnitToReadable(
 							legacyState.bond,
+							selectedToken,
+						)}
+						loading={loading}
+					/>
+				) : null}
+				{legacyState.isPic && legacyState.bond?.gt?.(0) ? (
+					<InfoBox
+						title="Exit rate"
+						secondaryInfo="Exit rate per day"
+						data={naturalUnitToDailyReadable(
+							legacyState.exitRate,
 							selectedToken,
 						)}
 						loading={loading}
@@ -295,7 +309,7 @@ function LegacyPICPanel() {
 						loading={loading}
 					/>
 				) : null}
-			</InfoBoxesContainer>
+			</LegacyBoxes>
 			{txStatus === WAITING ? (
 				<PageLoader />
 			) : txStatus === SUCCESSFUL ? (
