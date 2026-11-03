@@ -1,8 +1,10 @@
 import React, { useContext, useState } from 'react';
+import styled from 'styled-components';
 import { HeaderContainer, SectionContainer } from '../commonElements';
 import Header from '../Controls';
 import TokenInfo from '../../components/TokenInfo';
 import PICInfo from '../../components/PICInfo';
+import LegacyPICPanel from '../../components/LegacyPICPanel';
 import {
 	SelectedTokenContext,
 	SuperTokensContext,
@@ -10,6 +12,13 @@ import {
 import BigInfo from '../../components/common/BigInfo';
 import SectionHeader from '../../components/common/SectionHeader';
 import TokenSelection from '../../components/TokenSelection';
+
+const StackedSection = styled.div`
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	min-width: 0;
+`;
 
 function TokenInfoSection() {
 	const [selectedToken, setSelectedToken] = useState(null);
@@ -35,7 +44,10 @@ function TokenInfoSection() {
 						<TokenInfo />
 					</SectionContainer>
 					<SectionContainer>
-						<PICInfo />
+						<StackedSection>
+							<PICInfo />
+							<LegacyPICPanel />
+						</StackedSection>
 					</SectionContainer>
 				</React.Fragment>
 			) : (

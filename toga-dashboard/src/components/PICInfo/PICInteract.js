@@ -13,7 +13,7 @@ const InteractivePIC = styled.div`
 	}
 `;
 
-function PICInteract({ picAddress, togaContract, enabled }) {
+function PICInteract({ picAddress, togaContract, bidMethod, enabled }) {
 	const [modalToggled, toggleModal] = useState(false);
 	const [isPIC, setIsPIC] = useState(false);
 	const { ethersProvider } = useContext(ProviderContext);
@@ -35,7 +35,8 @@ function PICInteract({ picAddress, togaContract, enabled }) {
 						connectedWalletAddress.toLowerCase() ===
 							picAddress.toLowerCase(),
 				);
-			} catch (e) {
+			} catch (error) {
+				console.error('Unable to read the connected account', error);
 				setIsPIC(false);
 			}
 		};
@@ -60,6 +61,7 @@ function PICInteract({ picAddress, togaContract, enabled }) {
 				<BecomePICModal
 					enabled={modalToggled}
 					togaContract={togaContract}
+					bidMethod={bidMethod}
 					disableButton={disableButton}
 					closeModal={() => toggleModal(false)}
 				/>

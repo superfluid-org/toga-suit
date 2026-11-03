@@ -19,6 +19,10 @@ import {
 import PICInteract from './PICInteract';
 import { isWalletConnected } from '../../helper/web3Utils';
 import CopyableAddress from '../common/CopyableAddress';
+import {
+	bidMethodFromBytecode,
+	resolveActiveTogaAddress,
+} from '../../toga';
 
 const PICInfoContainer = styled.div`
 	display: flex;
@@ -53,44 +57,98 @@ function PICInfo() {
 	const [picData, setPicData] = useState({});
 	const [allowPICInteraction, setAllowPICInteraction] = useState(false);
 	const [togaContract, setTogaContract] = useState(null);
+	const [bidMethod, setBidMethod] = useState(null);
 	const { ethersProvider } = useContext(ProviderContext);
 	const { signer } = useContext(SignerContext);
 
 	useEffect(() => {
-		if (!ethersProvider || !selectedNetwork || !signer) {
-			return;
+		let cancelled = false;
+		async function attachToga() {
+			if (!selectedNetwork?.contractsV1) {
+				setTogaContract(null);
+				setBidMethod(null);
+				return;
+			}
+			const walletConnected = Boolean(
+				ethersProvider && isWalletConnected(ethersProvider),
+			);
+			setAllowPICInteraction(walletConnected);
+			const readProvider = ethersProvider || null;
+			const togaAddress = await resolveActiveTogaAddress(
+				selectedNetwork,
+				readProvider,
+			);
+			if (cancelled || !togaAddress) {
+				if (!cancelled) {
+					setTogaContract(null);
+					setBidMethod(null);
+				}
+				return;
+			}
+			let method = null;
+			if (readProvider) {
+				try {
+					const code = await readProvider.getCode(togaAddress);
+					method = bidMethodFromBytecode(code);
+				} catch (error) {
+					console.error('Unable to read TOGA bytecode', error);
+					method = null;
+				}
+			}
+			if (cancelled) {
+				return;
+			}
+			const providerOrSigner =
+				signer && walletConnected ? signer : readProvider;
+			if (!providerOrSigner) {
+				setTogaContract(null);
+				setBidMethod(method);
+				return;
+			}
+			setTogaContract(
+				new Contract(
+					togaAddress,
+					new utils.Interface(TOGAContractABI),
+					providerOrSigner,
+				),
+			);
+			setBidMethod(method);
 		}
-		setAllowPICInteraction(isWalletConnected(ethersProvider));
-		if (!selectedNetwork.contractsV1.toga) {
-			return;
-		}
-		const togaContractInterface = new utils.Interface(TOGAContractABI);
-		const providerOrSigner = isWalletConnected(ethersProvider)
-			? signer
-			: ethersProvider;
-		const contract = new Contract(
-			selectedNetwork.contractsV1.toga,
-			togaContractInterface,
-			providerOrSigner,
-		);
-		setTogaContract(contract);
+		attachToga();
+		return () => {
+			cancelled = true;
+		};
 	}, [ethersProvider, selectedNetwork, signer]);
 
 	useEffect(() => {
 		if (!togaContract || !selectedToken) {
+			setPicData({});
 			return;
 		}
+		let cancelled = false;
 		const refreshTogaInfo = async () => {
 			setLoadingPICData(true);
+			setPicData({});
 			try {
 				const { pic, exitRate, bond } =
 					await togaContract.getCurrentPICInfo(selectedToken.id);
-				setPicData({ address: pic, exitRate, bond });
-			} catch (e) {}
-
-			setLoadingPICData(false);
+				if (!cancelled) {
+					setPicData({ address: pic, exitRate, bond });
+				}
+			} catch (error) {
+				console.error('Unable to read PIC info', error);
+				if (!cancelled) {
+					setPicData({});
+				}
+			}
+			if (!cancelled) {
+				setLoadingPICData(false);
+			}
 		};
 		refreshTogaInfo();
+		return () => {
+			cancelled = true;
+		};
 	}, [togaContract, selectedToken]);
 
 	useEffect(() => {
@@ -104,7 +162,7 @@ function PICInfo() {
 		};
 		const exitRateChange = (token, exitRate) => {
 			if (token.toLowerCase() === selectedToken.id.toLowerCase()) {
-				setPicData({ ...picData, exitRate });
+				setPicData((prev) => ({ ...prev, exitRate }));
 			}
 		};
 		togaContract.on('NewPIC', picChange);
@@ -113,7 +171,7 @@ function PICInfo() {
 			togaContract.off('NewPIC', picChange);
 			togaContract.off('ExitRateChanged', exitRateChange);
 		};
-	}, [togaContract, selectedToken, picData]);
+	}, [togaContract, selectedToken]);
 
 	return (
 		<PICInfoContainer>
@@ -123,6 +181,7 @@ function PICInfo() {
 					enabled={allowPICInteraction}
 					picAddress={picData.address}
 					togaContract={togaContract}
+					bidMethod={bidMethod}
 				/>
 			</PICHeader>
 			{ethersProvider ? (

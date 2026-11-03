@@ -33,9 +33,10 @@ jobs:
         with:
           node-version: 18.x
 
-      - name: Install & Build
+      - name: Install, test, and build
         run: |
           yarn install --frozen-lockfile --production=false
+          yarn test
           yarn build
         # NOTE: `--production=false` is because of devDependencies. `yarn` doesn't install them when in production mode.
         env:
