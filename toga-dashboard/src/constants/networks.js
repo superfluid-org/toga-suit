@@ -4,11 +4,24 @@ const PROVIDER_URL_TEMPLATE = `https://rpc-endpoints.superfluid.dev/{{network}}`
 
 export const UNSUPPORTED = { name: 'Unsupported network' };
 
+// RainbowKit ships icons for the other dashboard chains, but not Arc.
+const ARC_ICON = {
+	iconBackground: '#0d1b2f',
+	iconUrl: `${process.env.PUBLIC_URL || ''}/icons/network/arc.png`,
+};
+
+function wagmiChainFor(metadataNetwork) {
+	return Object.values(wagmiChains).find(
+		(item) => item && item.id === metadataNetwork.chainId,
+	);
+}
+
 export const NETWORK_LIST = sfMeta.networks
 	.map((n) => {
-		const wagmiChain = Object.values(wagmiChains).find(
-			(item) => item.id === n.chainId,
-		);
+		if (n.contractsV1?.toga === undefined) {
+			return null;
+		}
+		const wagmiChain = wagmiChainFor(n);
 		if (!wagmiChain) {
 			console.error(`No wagmi chain found for ${n.name}`);
 			return null;
@@ -16,6 +29,7 @@ export const NETWORK_LIST = sfMeta.networks
 		return {
 			...n,
 			...wagmiChain,
+			...(wagmiChain.id === 5042 ? ARC_ICON : {}),
 			rpcUrls: {
 				// merge wagmi provided rpc url's with superfluid's
 				...wagmiChain.rpcUrls,

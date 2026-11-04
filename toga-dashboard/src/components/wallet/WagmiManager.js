@@ -2,41 +2,34 @@ import {
   RainbowKitProvider,
   lightTheme,
 } from "@rainbow-me/rainbowkit";
-import { createConfig as createWagmiConfig, WagmiConfig } from "wagmi";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createConfig, http, WagmiProvider } from "wagmi";
 import "@rainbow-me/rainbowkit/styles.css";
 import { getAppWallets } from "./getAppWallets";
-import { configureChains } from "wagmi";
-import { jsonRpcProvider } from "wagmi/providers/jsonRpc";
-import { NETWORK_LIST, findNetworkOrThrow } from "../../constants/networks";
+import { NETWORK_LIST } from "../../constants/networks";
 import { useContext } from "react";
 import { NetworkContext } from "../context";
 import AddressAvatar from "./AddressAvatar";
 
-export const { chains: wagmiChains, publicClient: wagmiRpcProvider } =
-  configureChains(NETWORK_LIST, [
-    jsonRpcProvider({
-      rpc: (chain) => ({
-        http: findNetworkOrThrow(NETWORK_LIST, chain.chainId).rpcUrls["superfluid"],
-      }),
-    }),
-  ]);
+const queryClient = new QueryClient();
 
-const { connectors } = getAppWallets({
-  appName: "Toga Dashboard",
-  projectId: process.env.REACT_APP_WALLET_CONNECT_PROJECT_ID,
-  chains: wagmiChains,
-});
-
-export const wagmiConfig = createWagmiConfig(
-  {
-  autoConnect: false, // Disable because of special Gnosis Safe handling in useAutoConnect.
-  connectors,
-  publicClient: wagmiRpcProvider,
+export const wagmiConfig = createConfig({
+  chains: NETWORK_LIST,
+  connectors: getAppWallets({
+    appName: "Toga Dashboard",
+    projectId: process.env.REACT_APP_WALLET_CONNECT_PROJECT_ID,
+  }),
+  transports: Object.fromEntries(
+    NETWORK_LIST.map((network) => [network.id, http(network.rpcUrls.superfluid)]),
+  ),
 });
 
 const WagmiManager = ({ children }) => {
-  
-  return <WagmiConfig config={wagmiConfig}>{children}</WagmiConfig>;
+  return (
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </WagmiProvider>
+  );
 };
 
 export default WagmiManager;
@@ -55,11 +48,10 @@ const Disclaimer = ({ Text, Link }) => (
 export const RainbowKitManager = ({ children }) => {
   const { selectedNetwork: network } = useContext(NetworkContext);
 
-  const initialChainId =  network?.chainId || wagmiChains[0].chainId; // RainbowKit either uses the wallet's chain if it's supported by our app OR switches to the first support chain.
+  const initialChainId = network?.chainId || NETWORK_LIST[0].id;
 
   return (
-    <RainbowKitProvider 
-      chains={wagmiChains}
+    <RainbowKitProvider
       initialChain={initialChainId}
       avatar={AddressAvatar}
       appInfo={{ disclaimer: Disclaimer }}
