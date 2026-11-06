@@ -47,10 +47,7 @@ export const metaMaskExtensionWallet = (options) => {
 			qrCode: undefined,
 			mobile: undefined,
 			createConnector: (walletDetails) =>
-				injectedMetaMaskConnector(
-					globalThis.window?.ethereum,
-					walletDetails,
-				),
+				injectedMetaMaskConnector(window.ethereum, walletDetails),
 		};
 	}
 	const link = wallet.qrCode?.getUri ?? metaMaskWalletConnectUri;
