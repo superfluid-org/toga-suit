@@ -6340,10 +6340,10 @@ csstype@^3.2.3:
   resolved "https://registry.yarnpkg.com/csstype/-/csstype-3.2.3.tgz#ec48c0f3e993e50648c86da559e2610995cf989a"
   integrity sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==
 
-cuer@0.0.3:
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/cuer/-/cuer-0.0.3.tgz#bb892dd748ca279d7452413e8d28abd2d9ef5914"
-  integrity sha512-f/UNxRMRCYtfLEGECAViByA3JNflZImOk11G9hwSd+44jvzrc99J35u5l+fbdQ2+ZG441GvOpaeGYBmWquZsbQ==
+cuer@0.0.3, cuer@0.0.4:
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/cuer/-/cuer-0.0.4.tgz#621e1f463235e5850afb5f14cd1c2d242cdc487b"
+  integrity sha512-QZaIBLvdZVNtR2xp6cclysR/jWFXqpETbnT0+EtxZ+CO8vCZoLO2V6euN92GaBNUDUQvaDdLOYWrhDwH8gw4sg==
   dependencies:
     qr "~0"
 

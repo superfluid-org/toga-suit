@@ -117,15 +117,58 @@ describe('MetaMask wallet', () => {
 		expect(sdk.loaded).toBe(false);
 	});
 
-	it('uses WalletConnect when MetaMask is only listed under ethereum.providers', () => {
+	it('uses the injected provider when MetaMask is only listed under ethereum.providers', async () => {
+		const provider = metaMaskProvider();
 		const connector = metaMaskConnector({
 			provider: {
 				isMetaMask: false,
-				providers: [{ isRabby: true }, metaMaskProvider()],
+				providers: [{ isRabby: true }, provider],
 			},
 		});
 
-		expect(connector.type).toBe('walletConnect');
+		expect(connector.type).toBe('injected');
+		await expect(connector.getProvider()).resolves.toBe(provider);
+		expect(connector.rkDetails.qrCode).toBeUndefined();
+		expect(sdk.loaded).toBe(false);
+	});
+
+	it('uses the extension announced over EIP-6963 when it is not window.ethereum', async () => {
+		const provider = metaMaskProvider();
+		const listeners = {};
+		installWindow();
+		globalThis.window.addEventListener = (type, listener) => {
+			(listeners[type] ||= []).push(listener);
+		};
+		globalThis.window.removeEventListener = (type, listener) => {
+			listeners[type] = (listeners[type] || []).filter(
+				(item) => item !== listener,
+			);
+		};
+		globalThis.window.dispatchEvent = (event) => {
+			if (event.type !== 'eip6963:requestProvider') {
+				return true;
+			}
+			for (const listener of listeners['eip6963:announceProvider'] || []) {
+				listener({
+					detail: {
+						info: { rdns: 'io.metamask', name: 'MetaMask' },
+						provider,
+					},
+				});
+			}
+			return true;
+		};
+
+		const connector = getAppWallets({
+			appName: 'Toga Dashboard',
+			projectId: 'test-project',
+		})
+			.map((create) => create(config))
+			.find((connector) => connector.rkDetails?.id === 'metaMask');
+
+		expect(connector.type).toBe('injected');
+		await expect(connector.getProvider()).resolves.toBe(provider);
+		expect(connector.rkDetails.qrCode).toBeUndefined();
 		expect(sdk.loaded).toBe(false);
 	});
 
