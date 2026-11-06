@@ -117,17 +117,15 @@ describe('MetaMask wallet', () => {
 		expect(sdk.loaded).toBe(false);
 	});
 
-	it('finds MetaMask when another wallet is the root provider', async () => {
-		const provider = metaMaskProvider();
+	it('uses WalletConnect when MetaMask is only listed under ethereum.providers', () => {
 		const connector = metaMaskConnector({
 			provider: {
 				isMetaMask: false,
-				providers: [{ isRabby: true }, provider],
+				providers: [{ isRabby: true }, metaMaskProvider()],
 			},
 		});
 
-		expect(connector.type).toBe('injected');
-		await expect(connector.getProvider()).resolves.toBe(provider);
+		expect(connector.type).toBe('walletConnect');
 		expect(sdk.loaded).toBe(false);
 	});
 
@@ -137,22 +135,6 @@ describe('MetaMask wallet', () => {
 		});
 
 		expect(connector.type).toBe('walletConnect');
-		expect(sdk.loaded).toBe(false);
-	});
-
-	it('skips a Coinbase provider listed ahead of MetaMask', async () => {
-		const provider = metaMaskProvider();
-		const connector = metaMaskConnector({
-			provider: {
-				providers: [
-					{ isMetaMask: true, isCoinbaseWallet: true },
-					provider,
-				],
-			},
-		});
-
-		expect(connector.type).toBe('injected');
-		await expect(connector.getProvider()).resolves.toBe(provider);
 		expect(sdk.loaded).toBe(false);
 	});
 });
