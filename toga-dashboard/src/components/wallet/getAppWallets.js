@@ -1,6 +1,5 @@
 import { connectorsForWallets } from '@rainbow-me/rainbowkit';
 import {
-	metaMaskWallet,
 	braveWallet,
 	walletConnectWallet,
 	coinbaseWallet,
@@ -9,6 +8,7 @@ import {
 	safeWallet,
 } from '@rainbow-me/rainbowkit/wallets';
 import mockConnector from './mockConnector/mockConnector';
+import { metaMaskExtensionWallet } from './metaMaskExtensionWallet';
 
 export const getAppWallets = ({ appName, projectId }) => {
 	const needsMock =
@@ -23,7 +23,7 @@ export const getAppWallets = ({ appName, projectId }) => {
 					injectedWallet,
 					safeWallet,
 					braveWallet,
-					metaMaskWallet,
+					metaMaskExtensionWallet,
 					walletConnectWallet,
 					coinbaseWallet,
 					rainbowWallet,
