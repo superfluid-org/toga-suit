@@ -27,4 +27,4 @@ yarn test:live
 
 ## Deployment
 
-https://toga.superfluid.org is deployed by Vercel's Git integration: pushes to `master` go to production, and pull requests get Vercel preview deployments. The GitHub Actions workflows only test and build (`release.yml`) and publish a pull request preview to GitHub Pages (`preview.yml`).
+https://toga.superfluid.org is deployed by Vercel's Git integration: pushes to `master` go to production, and pull requests get Vercel preview deployments. The GitHub Actions workflow (`release.yml`) only tests and builds.
